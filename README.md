@@ -110,6 +110,11 @@ Smooth batch processing, even when files vary.
 
 - Visit the **Releases** section for changelogs and older versions.  
 - If you’re only interested in using the tool, download the **standalone executable**.
+  
+## **Dependencies**
+- .NET 8.0 Runtime (required)
+- .NET 8.0 Runtime can be installed when the compiled executable is executed
+- If developing, install the [.NET 8.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 
 ---
 
