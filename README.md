@@ -67,9 +67,10 @@ I made multiple key improvements listed below.
 ## **Screenshots**
 Here are a few examples of what the tool looks like in action:
 
-![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot1.png)  
-![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot2.png)  
-![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot3.png)  
+![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot-Startup.png)  
+![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot-Failed.png)  
+![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot-Rename.png)  
+![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot-StartedBatch.png)  
 
 ---
 
@@ -120,5 +121,9 @@ Smooth batch processing, even when files vary.
 
 ## **Disclaimer**
 This tool is not affiliated with or endorsed by MKVToolNix. It is a standalone utility built to speed up and simplify the use of MKVToolNix tools like `mkvmerge.exe` and `mkvinfo.exe`.  
+
+## **License**
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for more details.
+
 
 ---
