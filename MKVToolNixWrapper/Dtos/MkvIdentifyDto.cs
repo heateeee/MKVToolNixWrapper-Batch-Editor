@@ -1,84 +1,133 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace MKVToolNixWrapper
 {
-    public class Properties
+    public class cProperties
     {
-        public double uid { get; set; }
+        [JsonPropertyName("uid")]
+        public double Uid { get; set; }
     }
 
-    public class Attachment
+    public class cAttachment
     {
-        public string content_type { get; set; }
-        public string description { get; set; }
-        public string file_name { get; set; }
-        public double id { get; set; }
-        public Properties properties { get; set; }
-        public double size { get; set; }
+        [JsonPropertyName("content_type")]
+        public string? Content_type { get; set; }
+        [JsonPropertyName("description")]
+        public string? Description { get; set; }
+        [JsonPropertyName("file_name")]
+        public string? File_Name { get; set; }
+        [JsonPropertyName("id")]
+        public double Id { get; set; }
+        [JsonPropertyName("properties")]
+        public cProperties? Properties { get; set; }
+        [JsonPropertyName("size")]
+        public double Size { get; set; }
     }
 
-    public class Chapter
+    public class cChapter
     {
-        public double num_entries { get; set; }
+        [JsonPropertyName("num_entries")]
+        public double Num_entries { get; set; }
     }
 
-    public class ContainerProperties
+    public class cContainerProperties
     {
-        public double container_type { get; set; }
-        public string date_local { get; set; }
-        public string date_utc { get; set; }
-        public long duration { get; set; }
-        public bool is_providing_timestamps { get; set; }
-        public string muxing_application { get; set; }
-        public string segment_uid { get; set; }
-        public string title { get; set; }
-        public string writing_application { get; set; }
+        [JsonPropertyName("container_type")]
+        public double Container_type { get; set; }
+        [JsonPropertyName("data_local")]
+        public string? Date_local { get; set; }
+        [JsonPropertyName("date_utc")]
+        public string? Date_utc { get; set; }
+        [JsonPropertyName("duration")]
+        public long Duration { get; set; }
+        [JsonPropertyName("is_providing_timestamps")]
+        public bool Is_providing_timestamps { get; set; }
+        [JsonPropertyName("muxing_application")]
+        public string? Muxing_application { get; set; }
+        [JsonPropertyName("segment_uid")]
+        public string? Segment_uid { get; set; }
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+        [JsonPropertyName("writing_application")]
+        public string? Writing_application { get; set; }
     }
 
-    public class Container
+    public class cContainer
     {
-        public ContainerProperties properties { get; set; }
-        public bool recognized { get; set; }
-        public bool supported { get; set; }
-        public string type { get; set; }
+        [JsonPropertyName("properties")]
+        public cContainerProperties? Properties { get; set; }
+        [JsonPropertyName("recognized")]
+        public bool Recognized { get; set; }
+        [JsonPropertyName("supported")]
+        public bool Supported { get; set; }
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
     }
 
-    public class Properties2
+    public class cProperties2
     {
-        public string codec_id { get; set; }
-        public string codec_private_data { get; set; }
-        public double codec_private_length { get; set; }
-        public double default_duration { get; set; }
-        public bool default_track { get; set; }
-        public bool enabled_track { get; set; }
-        public bool forced_track { get; set; }
-        public string language { get; set; }
-        public double minimum_timestamp { get; set; }
-        public double number { get; set; }
-        public string packetizer { get; set; }
-        public string pixel_dimensions { get; set; }
-        public double uid { get; set; }
-        public string track_name { get; set; }
+        [JsonPropertyName("codec_id")]
+        public string? Codec_id { get; set; }
+        [JsonPropertyName("codec_private_data")]
+        public string? Codec_private_data { get; set; }
+        [JsonPropertyName("codec_private_length")]
+        public double? Codec_private_length { get; set; }
+        [JsonPropertyName("default_location")]
+        public double? Default_duration { get; set; }
+        [JsonPropertyName("default_track")]
+        public bool? Default_Track { get; set; }
+        [JsonPropertyName("enabled_track")]
+        public bool? Enabled_track { get; set; }
+        [JsonPropertyName("forced_track")]
+        public bool? Forced_Track { get; set; }
+        [JsonPropertyName("language")]
+        public string? Language { get; set; }
+        [JsonPropertyName("minimum_timestamp")]
+        public double Minimum_timestamp { get; set; }
+        [JsonPropertyName("number")]
+        public double Number { get; set; }
+        [JsonPropertyName("packetizer")]
+        public string? Packetizer { get; set; }
+        [JsonPropertyName("pixel_dimensions")]
+        public string? Pixel_dimensions { get; set; }
+        [JsonPropertyName("uid")]
+        public double Uid { get; set; }
+        [JsonPropertyName("track_name")]
+        public string? Track_Name { get; set; }
     }
 
-    public class Track
+    public class cTrack
     {
-        public string codec { get; set; }
-        public double id { get; set; }
-        public Properties2 properties { get; set; }
-        public string type { get; set; }
+        [JsonPropertyName("codec")]
+        public string? Codec { get; set; }
+        [JsonPropertyName("id")]
+        public double Id { get; set; }
+        [JsonPropertyName("properties")]
+        public cProperties2? Properties { get; set; }
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
     }
 
-    public class RootObject
+    public class cRootObject
     {
-        public List<Attachment> attachments { get; set; }
-        public List<Chapter> chapters { get; set; }
-        public Container container { get; set; }
-        public List<object> errors { get; set; }
-        public string file_name { get; set; }
-        public List<object> global_tags { get; set; }
-        public double identification_format_version { get; set; }
-        public List<object> track_tags { get; set; }
-        public List<Track> tracks { get; set; }
+        [JsonPropertyName("attachments")]
+        public List<cAttachment> Attachments { get; set; } = [];
+        [JsonPropertyName("chapters")]
+        public List<cChapter> Chapters { get; set; } = [];
+        [JsonPropertyName("container")]
+        public cContainer? Container { get; set; }
+        [JsonPropertyName("errors")]
+        public List<object> Errors { get; set; } = [];
+        [JsonPropertyName("file_name")]
+        public string? File_name { get; set; }
+        [JsonPropertyName("global_tags")]
+        public List<object> Global_tags { get; set; } = [];
+        [JsonPropertyName("identification_format_version")]
+        public double Identification_format_version { get; set; }
+        [JsonPropertyName("track_tags")]
+        public List<object> Track_tags { get; set; } = [];
+        [JsonPropertyName("tracks")]
+        public List<cTrack> Tracks { get; set; } = [];
     }
 }

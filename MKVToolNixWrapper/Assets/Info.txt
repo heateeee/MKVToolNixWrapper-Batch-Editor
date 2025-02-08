@@ -6,7 +6,7 @@
 This program is a wrapper for mkvmerge.exe which ships as part of MKVToolNix (collection of tools for .mkv files).
 This programs purpose is to facilitate the quick bulk editing of .MKV files, allowing you to edit audio, video and subtitle tracks.
 Editing includes removal of tracks, defaulting tracks, forcing tracks, renaming tracks and setting track language.
-It also accounts for scenarios where files have differing track setups, the analyse button flags offending files so they can be dealt with in isolation.
+It also accounts for scenarios where files have differing track setups, the analyze button flags offending files so they can be dealt with in isolation.
 
 -- Installing MKV Merge --
 The easiest way to get mkvmerge.exe is to download and install mkvtoolnix which you can find here: https://mkvtoolnix.download/downloads.html#windows
