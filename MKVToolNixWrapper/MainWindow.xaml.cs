@@ -28,7 +28,7 @@ namespace MKVToolNixWrapper
     public partial class cMainWindow : Window
     {
         #region member
-        private List<cFileMeta> FileMetaList { get; set; } = []; 
+        private List<cFileMeta> FileMetaList { get; set; } = [];
         private List<cTrackListMeta> TrackList { get; set; } = [];
         private static string MkvMergePath { get; set; } = "C:\\Program Files\\MKVToolNix\\mkvmerge.exe";
         private List<int> ProcessIdTracker { get; set; } = [];
@@ -89,17 +89,14 @@ namespace MKVToolNixWrapper
             if (resizeInProgress) return;
 
             resizeInProgress = true;
-            Dispatcher.BeginInvoke((Action)(() =>
-            {
-                // resize logic
-                IntPtr handle = new WindowInteropHelper(this).Handle;
-                VerticalSplitter.Visibility = Visibility.Hidden;
-                cDrawingControl.SuspendDrawing(handle);
-                cDrawingControl.ResumeDrawing(handle);
-                VerticalSplitter.Visibility = Visibility.Visible;
 
-                resizeInProgress = false;
-            }), System.Windows.Threading.DispatcherPriority.Background);
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+            VerticalSplitter.Visibility = Visibility.Hidden;
+            cDrawingControl.SuspendDrawing(handle);
+            cDrawingControl.ResumeDrawing(handle);
+            VerticalSplitter.Visibility = Visibility.Visible;
+
+            resizeInProgress = false;
         }
         private bool resizeInProgress = false;
 
@@ -110,19 +107,10 @@ namespace MKVToolNixWrapper
             IntPtr handle = new WindowInteropHelper(this).Handle;
             Focus();
 
+            VerticalSplitter.Visibility = Visibility.Hidden;
             cDrawingControl.SuspendDrawing(handle);
-
-            // use a timer to resume drawing after moving is done
-            DispatcherTimer moveTimer = new()
-            {
-                Interval = TimeSpan.FromMilliseconds(500)
-            };
-            moveTimer.Tick += (s, args) =>
-            {
-                moveTimer.Stop();
-                cDrawingControl.ResumeDrawing(handle);
-            };
-            moveTimer.Start();
+            cDrawingControl.ResumeDrawing(handle);
+            VerticalSplitter.Visibility = Visibility.Visible;
         }
         #endregion
 
@@ -253,7 +241,7 @@ namespace MKVToolNixWrapper
                 PauseEvent.Reset();
                 return;
             }
-            else if (BatchButton.Content.ToString() == "Continue Batch")
+            else if (BatchButton.Content.ToString() == "Continue")
             {
                 // Resume the batch process
                 Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate);
