@@ -1,28 +1,119 @@
-# MKVToolNixWrapper
-This program is a wrapper for mkvmerge.exe which ships as part of MKVToolNix (collection of tools for .mkv files).
-This programs purpose is to facilitate quick bulk editing of .MKV files, allowing you to edit audio, video and subtitle tracks. Editing includes removal of tracks, defaulting tracks, forcing tracks, renaming tracks and setting track language. Also accounts for files having differing track setup as part of the analyse functionality and flags offending files so they can be dealt with in isolation.
+# **MKVToolNixWrapper - Batch Editor**
 
-# Download
-[Download the latest MKVToolNixWrapper](https://github.com/H3X1C/MKVToolNixWrapper/releases)
+**MKVToolNixWrapper - Batch Editor** is a simple and efficient tool designed to make batch editing of `.MKV` files quick and easy. This tool leverages **mkvmerge.exe** (part of the MKVToolNix suite) to help users customize their `.MKV` files with minimal effort.
 
-Changelogs and all releases are provided in the releases section. Do not try to download using the 'Source code (zip)' option if you just want to use the program!
+This project is a fork of [MKVToolNixWrapper](link-to-original-repo), developed by H3X1C.  
+I made multiple key improvements listed below.
 
-# Screenshots
-![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot1.png)
-![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot2.png)
-![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot3.png)
+---
 
-# Example scenario #1
-You have a series of anime that has multiple audio tracks with english dub as the default audio track, the show also has multiple subtitle tracks including english, french and Polish but non of these subtitles are flagged as forced or default so must be enabled manually each time you open an episode.
+## **Key Features**
+- **File Selection Made Easy**:  
+   - Browse folders or drag and drop files/folders to quickly add `.MKV` files to the tool.  
+   - Automatically filters out non-MKV files for your convenience.
 
-Using MKVToolNix Wrapper you can quickly remove the tracks you don't want such as the English dub audio track, the French and Polish subtitles. You can also set the default and forced flags if desired for the english subtitle track.
-The end result would be a reduced file size and the convenience of opening the file in your chosen player and it automatically defaulting to your own personal preference of subtitles and audio.
+- **Analyze File Compatibility**:  
+   - Check if all selected files have the same audio, video, and subtitle tracks.  
+   - Files with mismatched tracks are flagged in **red** and must be deselected before processing other files.
 
-# Example scenario #2
-You have a collection of mkv files for a TV show, but sadly the track setup differs in 3 out of the 30 episodes, with the subtitle track naming being different and it being in a different order.
+- **Customize Tracks**:  
+   - Easily remove unwanted tracks with checkboxes.  
+   - Reorder, rename, change language, and adjust **default** and **forced** flags for tracks.  
+   - Supports editing of audio, subtitle, and video tracks.
 
-Using MKVToolNix Wrapper you must click the 'Analyse' button before proceeding with the batching, doing so will perform an analysis on the files, giving each file a PASS or FAIL status.
-In this example the 3 files would have flagged as FAILs and would have been highlighted in red.
-A file fails when there are differences in track count, track naming, track language and or track ordering when compared to the first file it analysed.
-To progress you would simply uncheck the 3 files that failed, click 'Analyse' again which would result in all PASS so would unlock the 'Start Batch' button allowing you to proceed.
-Once you have processed the 27 episode batch you can then click the 'Invert' button to select the remaining 3 episode, analyse again and they would all PASS allowing you batch those 3 in isolation.
+- **Batch Processing**:  
+   - Configure track settings and process all compatible files in one go.  
+   - Output files are saved in the same directory in a newly created **`masteredfiles`** folder.  
+
+- **Control the Process**:  
+   - Pause, stop, or monitor progress using the built-in console window.  
+   - The console provides real-time updates about file processing.
+
+- **Restart Anytime**:  
+   - Clear the last selected file list and start over with new selections effortlessly.
+
+---
+
+## **How It Works**
+1. **Add Files**:  
+   - Use the **Browse Folder** button or drag-and-drop files/folders into the tool.  
+   - Only `.MKV` files will be listed for processing.
+
+2. **Analyze Files**:  
+   - Click the **Analyze** button to check if all files have identical track structures (audio, subtitles, video).  
+   - Files that fail the analysis are marked in **red** and must be deselected to proceed.
+
+3. **Edit Tracks**:  
+   - Use the second table to:
+     - **Remove Tracks**: Check the box to exclude a track.
+     - **Reorder Tracks**: Change the track order by using the up button.
+     - **Rename Tracks**: Give tracks custom names.
+     - **Change Language**: Set the language of a track.
+     - **Set Flags**: Mark tracks as **default** or **forced**.
+
+4. **Batch Process Files**:  
+   - Once all files are ready, click **Start Batch** to apply your settings.  
+   - The processed files are saved in the `masteredfiles` folder and will always overwrite existing files(!).
+
+5. **Monitor Progress**:  
+   - Follow the progress in the console window at the bottom of the tool.  
+   - Pause or stop the process at any time if needed.
+
+6. **Repeat if Needed**:  
+   - Clear the files list and start again with new files or settings.
+
+---
+
+## **Screenshots**
+Here are a few examples of what the tool looks like in action:
+
+![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot1.png)  
+![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot2.png)  
+![Screenshot](MKVToolNixWrapper/Assets/Screenshots/Screenshot3.png)  
+
+---
+
+## **Example Use Cases**
+### **Scenario 1: Simplify Your Playback Experience**  
+You have a series of `.MKV` files with multiple audio tracks (e.g., English dub, foreign language) and subtitles in various languages. You want:  
+- To remove unwanted audio and subtitle tracks.  
+- To set the default audio to **English**.  
+- To mark English subtitles as both **default** and **forced**.
+- To reorder the track list, to have your prefered language always listed at the top.
+
+With MKVToolNixWrapper - Batch Editor, you can:  
+1. Add all `.MKV` files to the tool.  
+2. Remove unnecessary tracks using the checkboxes.  
+3. Set the desired tracks as default and/or forced.  
+4. Click **Start Batch** to save the customized files in the `masteredfiles` folder.  
+
+The result:  
+Smaller file sizes and playback that matches your preferences.
+
+---
+
+### **Scenario 2: Handle Inconsistent Track Layouts**  
+You have a TV series where most episodes have the same track setup, but a few episodes differ in track names, count, or order.  
+
+With MKVToolNixWrapper - Batch Editor, you can:  
+1. Click **Analyze** to check for inconsistencies.  
+2. Deselect the flagged (red) files to process the compatible ones first.  
+3. Process the flagged files separately after resolving their differences.  
+
+The result:  
+Smooth batch processing, even when files vary.
+
+---
+
+## **Download**
+[Download the latest version of MKVToolNixWrapper - Batch Editor](https://github.com/heateeee/MKVToolNixWrapper-BatchEditor/releases)
+
+- Visit the **Releases** section for changelogs and older versions.  
+- If you’re only interested in using the tool, download the **standalone executable**.
+
+---
+
+## **Disclaimer**
+This tool is not affiliated with or endorsed by MKVToolNix. It is a standalone utility built to speed up and simplify the use of MKVToolNix tools like `mkvmerge.exe` and `mkvinfo.exe`.  
+
+---
