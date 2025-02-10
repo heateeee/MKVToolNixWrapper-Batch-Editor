@@ -86,20 +86,12 @@ namespace MKVToolNixWrapper
         private void MainWindow_SizeChanged(object? sender, SizeChangedEventArgs e)
         {
             // my try to optimize the resize
-            if (resizeInProgress) return;
-
-            resizeInProgress = true;
-
             IntPtr handle = new WindowInteropHelper(this).Handle;
             VerticalSplitter.Visibility = Visibility.Hidden;
             cDrawingControl.SuspendDrawing(handle);
             cDrawingControl.ResumeDrawing(handle);
             VerticalSplitter.Visibility = Visibility.Visible;
-
-            resizeInProgress = false;
         }
-        private bool resizeInProgress = false;
-
 
         private void MainWindow_LocationChanged(object? sender, EventArgs e)
         {
