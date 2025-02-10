@@ -83,27 +83,32 @@ namespace MKVToolNixWrapper
         #endregion
 
         #region paint
-        private void MainWindow_SizeChanged(object? sender, SizeChangedEventArgs e)
-        {
-            // my try to optimize the resize
-            IntPtr handle = new WindowInteropHelper(this).Handle;
-            VerticalSplitter.Visibility = Visibility.Hidden;
-            cDrawingControl.SuspendDrawing(handle);
-            cDrawingControl.ResumeDrawing(handle);
-            VerticalSplitter.Visibility = Visibility.Visible;
-        }
-
-        private void MainWindow_LocationChanged(object? sender, EventArgs e)
-        {
-            // optimize when moving
-            IntPtr handle = new WindowInteropHelper(this).Handle;
-            Focus();
-
-            VerticalSplitter.Visibility = Visibility.Hidden;
-            cDrawingControl.SuspendDrawing(handle);
-            cDrawingControl.ResumeDrawing(handle);
-            VerticalSplitter.Visibility = Visibility.Visible;
-        }
+          private void MainWindow_SizeChanged(object? sender, SizeChangedEventArgs e)
+          {
+              // check if the window is in the normal state (not minimized or maximized)
+              if (WindowState == WindowState.Normal)
+              {
+                  // optimize the resize
+                  VerticalSplitter.Visibility = Visibility.Hidden;
+                  cDrawingControl.SuspendDrawing(cDrawingControl.GetWindowHandle(this));
+                  cDrawingControl.ResumeDrawing(cDrawingControl.GetWindowHandle(this));
+                  VerticalSplitter.Visibility = Visibility.Visible;
+              }
+          }
+          private void MainWindow_LocationChanged(object? sender, EventArgs e)
+          {
+              // check if the window is in the normal state (not minimized or maximized)
+              if (WindowState == WindowState.Normal)
+              {
+                  // optimize when moving
+                  Focus();
+        
+                  VerticalSplitter.Visibility = Visibility.Hidden;
+                  cDrawingControl.SuspendDrawing(cDrawingControl.GetWindowHandle(this));
+                  cDrawingControl.ResumeDrawing(cDrawingControl.GetWindowHandle(this));
+                  VerticalSplitter.Visibility = Visibility.Visible;
+              }
+          }
         #endregion
 
         #region mkv merge path
