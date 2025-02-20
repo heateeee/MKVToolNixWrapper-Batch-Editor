@@ -46,7 +46,16 @@ namespace MKVToolNixWrapper
             LocationChanged += MainWindow_LocationChanged;
             Loaded += MainWindow_Loaded;
             Title = $"MKVToolNixWrapper v{Assembly.GetExecutingAssembly().GetName().Version?.ToString(2)}";
-            this.Activated += OnAppActivated;
+            Activated += OnAppActivated;
+
+            MkvMergeExistsCheck();
+
+            Loaded += (s, e) =>
+            {
+                // to help set the window in the taskbar and focus it
+                this.Activate();
+                this.Focus();
+            };
         }
         #endregion
 
@@ -59,7 +68,6 @@ namespace MKVToolNixWrapper
             AnalyzeButton.IsEnabled = false;
             BatchButton.IsEnabled = false;
             PlayIntroSound();
-            MkvMergeExistsCheck();
             StartPulsing(BrowseFolderButton, 2000);
             StartPulsing(SelectedFolderPathLabel, 2000);
             TaskbarItemInfo.ProgressValue = 100;
@@ -74,7 +82,7 @@ namespace MKVToolNixWrapper
                 Dispatcher.Invoke(() =>
                 {
                     if (TaskbarItemInfo != null)
-                        TaskbarItemInfo.ProgressState = TaskbarItemProgressState.None;
+                        SetTaskbarProgressState(TaskbarItemProgressState.None);
 
                     IsEventListening = false;
                 });
@@ -83,32 +91,32 @@ namespace MKVToolNixWrapper
         #endregion
 
         #region paint
-          private void MainWindow_SizeChanged(object? sender, SizeChangedEventArgs e)
-          {
-              // check if the window is in the normal state (not minimized or maximized)
-              if (WindowState == WindowState.Normal)
-              {
-                  // optimize the resize
-                  VerticalSplitter.Visibility = Visibility.Hidden;
-                  cDrawingControl.SuspendDrawing(cDrawingControl.GetWindowHandle(this));
-                  cDrawingControl.ResumeDrawing(cDrawingControl.GetWindowHandle(this));
-                  VerticalSplitter.Visibility = Visibility.Visible;
-              }
-          }
-          private void MainWindow_LocationChanged(object? sender, EventArgs e)
-          {
-              // check if the window is in the normal state (not minimized or maximized)
-              if (WindowState == WindowState.Normal)
-              {
-                  // optimize when moving
-                  Focus();
-        
-                  VerticalSplitter.Visibility = Visibility.Hidden;
-                  cDrawingControl.SuspendDrawing(cDrawingControl.GetWindowHandle(this));
-                  cDrawingControl.ResumeDrawing(cDrawingControl.GetWindowHandle(this));
-                  VerticalSplitter.Visibility = Visibility.Visible;
-              }
-          }
+        private void MainWindow_SizeChanged(object? sender, SizeChangedEventArgs e)
+        {
+            // check if the window is in the normal state (not minimized or maximized)
+            if (WindowState == WindowState.Normal)
+            {
+                // optimize the resize
+                VerticalSplitter.Visibility = Visibility.Hidden;
+                cDrawingControl.SuspendDrawing(cDrawingControl.GetWindowHandle(this));
+                cDrawingControl.ResumeDrawing(cDrawingControl.GetWindowHandle(this));
+                VerticalSplitter.Visibility = Visibility.Visible;
+            }
+        }
+        private void MainWindow_LocationChanged(object? sender, EventArgs e)
+        {
+            // check if the window is in the normal state (not minimized or maximized)
+            if (WindowState == WindowState.Normal)
+            {
+                // optimize when moving
+                Focus();
+
+                VerticalSplitter.Visibility = Visibility.Hidden;
+                cDrawingControl.SuspendDrawing(cDrawingControl.GetWindowHandle(this));
+                cDrawingControl.ResumeDrawing(cDrawingControl.GetWindowHandle(this));
+                VerticalSplitter.Visibility = Visibility.Visible;
+            }
+        }
         #endregion
 
         #region mkv merge path
@@ -130,64 +138,89 @@ namespace MKVToolNixWrapper
             }
             else
             {
-                MessageBox.Show($"Unable to locate mkvmerge.exe\r\nPlease click OK and locate your mkvmerge.exe", "Failed to locate MKVMerge", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.Forms.DialogResult dialogResult = (System.Windows.Forms.DialogResult)MessageBox.Show($"Unable to locate mkvmerge.exe\r\nPlease click OK and locate your mkvmerge.exe", "Failed to locate MKVMerge", MessageBoxButton.OKCancel, MessageBoxImage.Error, MessageBoxResult.OK);
+                if (dialogResult != System.Windows.Forms.DialogResult.OK)
+                {
+                    Close();
+                    return;
+                }
                 WriteOutputLine($"Failed to locate MKVMerge at: \"{MkvMergePath}\" prompting user for location");
 
                 if (!SetMkvMergePath())
                 {
                     ToggleUI(false);
                 }
+                else
+                {
+                    ToggleUI(true);
+                    // ensure the window is displayed in the taskbar
+                    Dispatcher.Invoke(() =>
+                    {
+                        // to help set the window in the taskbar and focus it
+                        this.Activate();
+                        this.Focus();
+                    });
+                }
             }
         }
 
         private bool SetMkvMergePath(bool restart = true)
         {
-            var openFileDlg = new System.Windows.Forms.OpenFileDialog
+            try
             {
-                Title = "Locate your mkvmerge.exe",
-                Filter = "Executable Files|*.exe",
-                FileName = "mkvmerge.exe",
-                CheckFileExists = true,
-                CheckPathExists = true
-            };
-
-            var result = openFileDlg.ShowDialog();
-            if (result == System.Windows.Forms.DialogResult.OK)
-            {
-                if (Path.GetFileName(openFileDlg.FileName).Equals("mkvmerge.exe"))
+                System.Windows.Forms.OpenFileDialog openFileDlg = new()
                 {
-                    // save to config
-                    Configuration roaming = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
-                    ExeConfigurationFileMap fileMap = new()
+                    Title = "Locate your mkvmerge.exe",
+                    Filter = "Executable Files|*.exe",
+                    FileName = "mkvmerge.exe",
+                    CheckFileExists = true,
+                    CheckPathExists = true
+                };
+
+                System.Windows.Forms.DialogResult result = openFileDlg.ShowDialog();
+                if (result == System.Windows.Forms.DialogResult.OK)
+                {
+                    if (Path.GetFileName(openFileDlg.FileName).Equals("mkvmerge.exe"))
                     {
-                        ExeConfigFilename = roaming.FilePath
-                    };
-                    Configuration config = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
-                    if (config.AppSettings.Settings["MkvMergePath"] == null)
-                    {
-                        config.AppSettings.Settings.Add("MkvMergePath", openFileDlg.FileName);
+                        // save to config
+                        Configuration roaming = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoamingAndLocal);
+                        ExeConfigurationFileMap fileMap = new()
+                        {
+                            ExeConfigFilename = roaming.FilePath
+                        };
+                        Configuration config = ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
+                        if (config.AppSettings.Settings["MkvMergePath"] == null)
+                        {
+                            config.AppSettings.Settings.Add("MkvMergePath", openFileDlg.FileName);
+                        }
+                        else
+                        {
+                            config.AppSettings.Settings["MkvMergePath"].Value = openFileDlg.FileName;
+                        }
+                        config.Save(ConfigurationSaveMode.Modified);
+
+                        // update path
+                        MkvMergePath = openFileDlg.FileName;
+                        WriteOutputLine($"Succesfully located MKVMerge at: \"{MkvMergePath}\"");
+                        return true;
                     }
                     else
                     {
-                        config.AppSettings.Settings["MkvMergePath"].Value = openFileDlg.FileName;
+                        MessageBox.Show($"You have selected an invalid executable\r\nEnsure the file is correctly named 'mkvmerge.exe'\r\nPlease restart the application and try again\r\n\r\nClick on 'Help' if you need more information on MkvMerge", "Failed to locate MKVMerge", MessageBoxButton.OK, MessageBoxImage.Error);
+                        Close();
                     }
-                    config.Save(ConfigurationSaveMode.Modified);
-
-                    // update path
-                    MkvMergePath = openFileDlg.FileName;
-                    WriteOutputLine($"Succesfully located MKVMerge at: \"{MkvMergePath}\"");
-                    return true;
                 }
-                else
+                else if (restart)
                 {
-                    MessageBox.Show($"You have selected an invalid executable\r\nEnsure the file is correctly named 'mkvmerge.exe'\r\nPlease restart the application and try again\r\n\r\nClick on 'Help' if you need more information on MkvMerge", "Failed to locate MKVMerge", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Close();
+                    // commented out as it's not possible to close it without task manager
+                    // SetMkvMergePath(); 
                 }
             }
-            else if (restart)
+            catch (Exception ex)
             {
-                Close();
-                // commented out as it's not possible to close it without task manager
-                // SetMkvMergePath(); 
+                WriteOutputLine($"An error occurred while setting MKVMerge path: {ex.Message}");
+                MessageBox.Show($"An error occurred while setting MKVMerge path: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             return false;
@@ -231,7 +264,7 @@ namespace MKVToolNixWrapper
             if (BatchButton.Content.ToString() == "Pause Batch")
             {
                 // pause the batch process
-                Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Paused);
+                SetTaskbarProgressState(TaskbarItemProgressState.Paused);
                 Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
                 BatchButton.Content = "Continue";
                 Dispatcher.Invoke(() => StartPulsing(BatchButton));
@@ -241,7 +274,7 @@ namespace MKVToolNixWrapper
             else if (BatchButton.Content.ToString() == "Continue")
             {
                 // Resume the batch process
-                Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate);
+                SetTaskbarProgressState(TaskbarItemProgressState.Indeterminate);
                 Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
                 BatchButton.Content = "Pause Batch";
                 Dispatcher.Invoke(() => StopPulsing(BatchButton));
@@ -272,6 +305,10 @@ namespace MKVToolNixWrapper
 
             Process process = Process.Start("notepad", $"{Path.GetTempPath()}\\Info.txt");
             process.Dispose();
+        }
+        private void ClearOutputButton_Click(object sender, RoutedEventArgs e)
+        {
+            OutputTextBox.Clear();
         }
 
         #region table file list button clicks
@@ -341,7 +378,7 @@ namespace MKVToolNixWrapper
             });
             ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
         }
-         private void MoveUpButton_Click(object sender, RoutedEventArgs e)
+        private void MoveUpButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button button || button.DataContext is not cTrackListMeta track) return;
 
@@ -375,6 +412,47 @@ namespace MKVToolNixWrapper
             }
         }
 
+        #endregion
+
+        #region filelistbox
+        private void ListBoxItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is ListBoxItem item)
+            {
+                var checkBox = FindVisualChild<CheckBox>(item);
+                if (checkBox != null)
+                {
+                    checkBox.IsChecked = !checkBox.IsChecked;
+                    FileListBoxCheckChanged();
+                    e.Handled = true;
+                }
+            }
+        }
+        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                FileListBoxCheckChanged();
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T tChild)
+                {
+                    return tChild;
+                }
+
+                var result = FindVisualChild<T>(child);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+            return null;
+        }
+        private void FileListBoxCheckChanged()
+        {
+            TrackGrid.ItemsSource = null;
+            TrackGrid.IsEnabled = false;
+            BatchButton.IsEnabled = false;
+        }
         #endregion
 
         #endregion
@@ -460,147 +538,159 @@ namespace MKVToolNixWrapper
         #region analyze
         private async void AnalyzeMkvFiles()
         {
-            await Task.Run(() =>
+            try
             {
-                WriteOutputLine("**** ANALYSIS START ****");
-                Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate);
-
-                // Clear any previously processes track items
-                TrackList = [];
-                Dispatcher.Invoke(() => ToggleUI(false));
-
-                // Clear an failed analysis files
-                foreach (var file in FileMetaList)
+                await Task.Run(() =>
                 {
-                    if (file.Status == FileStatusEnum.FailedAnalysis)
+                    if (!FileMetaList.Any(x => x.Include))                    
+                        return;                    
+
+                    WriteOutputLine("**** ANALYSIS START ****");
+                    SetTaskbarProgressState(TaskbarItemProgressState.Indeterminate);
+
+                    // Clear any previously processes track items
+                    TrackList = [];
+                    Dispatcher.Invoke(() => ToggleUI(false));
+
+                    // Clear an failed analysis files
+                    foreach (var file in FileMetaList)
                     {
-                        file.Status = FileStatusEnum.Unprocessed;
+                        if (file.Status == FileStatusEnum.FailedAnalysis)
+                        {
+                            file.Status = FileStatusEnum.Unprocessed;
+                        }
                     }
-                }
-                ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
-
-                // Force mouse spinner
-                Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
-
-                // Clear Track grid on the UI
-                Dispatcher.Invoke(() => TrackGrid.ItemsSource = null);
-
-                // Get set of files which are checked in the UI
-                List<cFileMeta> includedFiles = FileMetaList.Where(x => x.Include).ToList();
-
-                // Analyze each file against comparison file
-                bool allPassed = true;
-                cFileMeta? CompareFileItem = null;
-                List<cTrack> CompareMkvSubTracks = [];
-                List<cTrack> CompareMkvAudioTracks = [];
-                List<cTrack> CompareMkvVideoTracks = [];
-                foreach (var fileItem in FileMetaList.Where(x => x.Include).ToList())
-                {
-                    cRootObject? MKVInfo = QueryMkvFile(fileItem.FilePath);
-                    if (MKVInfo is null)
-                    {
-                        WriteOutputLine($"FAIL - \"{Path.GetFileName(fileItem.FilePath)}\" is not a valid mkv file");
-                        fileItem.Status = FileStatusEnum.FailedAnalysis;
-                        ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
-                        continue;
-                    }
-
-                    // Attachment info dump
-                    int? attachmentCount = MKVInfo.Attachments?.Count;
-                    Regex coverRegex = new(@"cover.*\.(png|jpg)$", RegexOptions.IgnoreCase);
-                    IEnumerable<cAttachment>? coverArtAttachments = MKVInfo.Attachments?.Where(x => x.File_Name != null && coverRegex.IsMatch(x.File_Name));
-                    if (attachmentCount > 0)
-                    {
-                        WriteOutputLine($"Attachment(s) Found: {attachmentCount} {(coverArtAttachments?.Count() > 0 ? $"- Cover Art Found: {coverArtAttachments?.Count()}" : "")}");
-                    }
-
-                    if (CompareFileItem == null)
-                    {
-                        // Populate comparison point
-                        WriteOutputLine($"PASS - \"{Path.GetFileName(fileItem.FilePath)}\" marked as comparison point");
-                        CompareFileItem = fileItem;
-                        CompareMkvSubTracks = [.. MKVInfo.Tracks.Where(x => x.Type == "subtitles").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name)];
-                        CompareMkvAudioTracks = [.. MKVInfo.Tracks.Where(x => x.Type == "audio").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name)];
-                        CompareMkvVideoTracks = [.. MKVInfo.Tracks.Where(x => x.Type == "video").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name)];
-
-                        // Using track info from first file, will later be applied to the track grid given it passes
-                        TrackList = MKVInfo.Tracks.OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name)
-                            .Select(x => new cTrackListMeta
-                            {
-                                Id = x.Id,
-                                Name = x.Properties?.Track_Name,
-                                Language = x.Properties?.Language,
-                                Type = x.Type,
-                                Codec = x.Properties?.Codec_id,
-                                Include = true,
-                                Default = x.Properties?.Default_Track ?? false,
-                                Forced = x.Properties?.Forced_Track ?? false
-                            }).ToList();
-                        continue;
-                    }
-
-                    var curMkvVideoTracks = MKVInfo.Tracks.Where(x => x.Type == "video").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name).ToList();
-                    if (!CheckTracks("video", fileItem.FilePath, curMkvVideoTracks, CompareFileItem.FilePath, CompareMkvVideoTracks))
-                    {
-                        allPassed = false;
-                        fileItem.Status = FileStatusEnum.FailedAnalysis;
-                        ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
-                        continue;
-                    }
-
-                    var curMkvAudioTracks = MKVInfo.Tracks.Where(x => x.Type == "audio").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name).ToList();
-                    if (!CheckTracks("audio", fileItem.FilePath, curMkvAudioTracks, CompareFileItem.FilePath, CompareMkvAudioTracks))
-                    {
-                        allPassed = false;
-                        fileItem.Status = FileStatusEnum.FailedAnalysis;
-                        ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
-                        continue;
-                    }
-
-                    var curMkvSubTracks = MKVInfo.Tracks.Where(x => x.Type == "subtitles").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name).ToList();
-                    if (!CheckTracks("subtitles", fileItem.FilePath, curMkvSubTracks, CompareFileItem.FilePath, CompareMkvSubTracks))
-                    {
-                        allPassed = false;
-                        fileItem.Status = FileStatusEnum.FailedAnalysis;
-                        ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
-                        continue;
-                    }
-
-                    WriteOutputLine($"PASS - \"{Path.GetFileName(fileItem.FilePath)}\"");
-                    fileItem.Status = FileStatusEnum.PassedAnalysis;
                     ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
-                }
 
-                // unset mouse spinner
-                Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
-                // Unlock ui
-                Dispatcher.Invoke(() => ToggleUI(true));
+                    // Force mouse spinner
+                    Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
 
-                if (allPassed)
-                {
-                    ForceSetControlItemsSourceBinding(TrackGrid, TrackList);
-                    Dispatcher.Invoke(() => TrackGrid.IsEnabled = true);
-                    Dispatcher.Invoke(() => BatchButton.IsEnabled = true);
-                    Dispatcher.Invoke(() => StartPulsing(BatchButton, 2000));
-                    WriteOutputLine("Analysis Completed - Outcome: PASS");
-                    Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal);
-                }
-                else
-                {
-                    Dispatcher.Invoke(() => BatchButton.IsEnabled = false);
-                    Dispatcher.Invoke(() => TrackGrid.IsEnabled = false);
-                    WriteOutputLine("Analysis Completed - Outcome: FAIL");
-                    WriteOutputLine("Explanation: Unable to unlock batching as the selected files have differing sub/audio/video track setup, proceeding would result in missmatched tracks");
-                    WriteOutputLine("Resolution: Deselect the MKV's that have FAILED and process them on their own. Only once all selected files PASS is the batch button unlocked");
-                    SystemSounds.Hand.Play();
-                    Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Error);
-                }
+                    // Clear Track grid on the UI
+                    Dispatcher.Invoke(() => TrackGrid.ItemsSource = null);
 
-                IsEventListening = true;
+                    // Get set of files which are checked in the UI
+                    List<cFileMeta> includedFiles = FileMetaList.Where(x => x.Include).ToList();
 
-                WriteOutputLine($"**** ANALYSIS END ****");
-                WriteOutputLine();
-            });
+                    // Analyze each file against comparison file
+                    bool allPassed = true;
+                    cFileMeta? CompareFileItem = null;
+                    List<cTrack> CompareMkvSubTracks = [];
+                    List<cTrack> CompareMkvAudioTracks = [];
+                    List<cTrack> CompareMkvVideoTracks = [];
+                    foreach (var fileItem in FileMetaList.Where(x => x.Include).ToList())
+                    {
+                        cRootObject? MKVInfo = QueryMkvFile(fileItem.FilePath);
+                        if (MKVInfo is null)
+                        {
+                            WriteOutputLine($"FAIL - \"{Path.GetFileName(fileItem.FilePath)}\" is not a valid mkv file");
+                            fileItem.Status = FileStatusEnum.FailedAnalysis;
+                            ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
+                            continue;
+                        }
+
+                        // Attachment info dump
+                        int? attachmentCount = MKVInfo.Attachments?.Count;
+                        Regex coverRegex = new(@"cover.*\.(png|jpg)$", RegexOptions.IgnoreCase);
+                        IEnumerable<cAttachment>? coverArtAttachments = MKVInfo.Attachments?.Where(x => x.File_Name != null && coverRegex.IsMatch(x.File_Name));
+                        if (attachmentCount > 0)
+                        {
+                            WriteOutputLine($"Attachment(s) Found: {attachmentCount} {(coverArtAttachments?.Count() > 0 ? $"- Cover Art Found: {coverArtAttachments?.Count()}" : "")}");
+                        }
+
+                        if (CompareFileItem == null)
+                        {
+                            // Populate comparison point
+                            WriteOutputLine($"PASS - \"{Path.GetFileName(fileItem.FilePath)}\" marked as comparison point");
+                            CompareFileItem = fileItem;
+                            CompareMkvSubTracks = [.. MKVInfo.Tracks.Where(x => x.Type == "subtitles").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name)];
+                            CompareMkvAudioTracks = [.. MKVInfo.Tracks.Where(x => x.Type == "audio").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name)];
+                            CompareMkvVideoTracks = [.. MKVInfo.Tracks.Where(x => x.Type == "video").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name)];
+
+                            // Using track info from first file, will later be applied to the track grid given it passes
+                            TrackList = MKVInfo.Tracks.OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name)
+                                .Select(x => new cTrackListMeta
+                                {
+                                    Id = x.Id,
+                                    Name = x.Properties?.Track_Name,
+                                    Language = x.Properties?.Language,
+                                    Type = x.Type,
+                                    Codec = x.Properties?.Codec_id,
+                                    Include = true,
+                                    Default = x.Properties?.Default_Track ?? false,
+                                    Forced = x.Properties?.Forced_Track ?? false
+                                }).ToList();
+                            continue;
+                        }
+
+                        var curMkvVideoTracks = MKVInfo.Tracks.Where(x => x.Type == "video").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name).ToList();
+                        if (!CheckTracks("video", fileItem.FilePath, curMkvVideoTracks, CompareFileItem.FilePath, CompareMkvVideoTracks))
+                        {
+                            allPassed = false;
+                            fileItem.Status = FileStatusEnum.FailedAnalysis;
+                            ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
+                            continue;
+                        }
+
+                        var curMkvAudioTracks = MKVInfo.Tracks.Where(x => x.Type == "audio").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name).ToList();
+                        if (!CheckTracks("audio", fileItem.FilePath, curMkvAudioTracks, CompareFileItem.FilePath, CompareMkvAudioTracks))
+                        {
+                            allPassed = false;
+                            fileItem.Status = FileStatusEnum.FailedAnalysis;
+                            ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
+                            continue;
+                        }
+
+                        var curMkvSubTracks = MKVInfo.Tracks.Where(x => x.Type == "subtitles").OrderBy(y => y.Id).ThenBy(z => z.Properties?.Track_Name).ToList();
+                        if (!CheckTracks("subtitles", fileItem.FilePath, curMkvSubTracks, CompareFileItem.FilePath, CompareMkvSubTracks))
+                        {
+                            allPassed = false;
+                            fileItem.Status = FileStatusEnum.FailedAnalysis;
+                            ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
+                            continue;
+                        }
+
+                        WriteOutputLine($"PASS - \"{Path.GetFileName(fileItem.FilePath)}\"");
+                        fileItem.Status = FileStatusEnum.PassedAnalysis;
+                        ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
+                    }
+
+                    // unset mouse spinner
+                    Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
+                    // Unlock ui
+                    Dispatcher.Invoke(() => ToggleUI(true));
+
+                    if (allPassed)
+                    {
+                        ForceSetControlItemsSourceBinding(TrackGrid, TrackList);
+                        Dispatcher.Invoke(() => TrackGrid.IsEnabled = true);
+                        Dispatcher.Invoke(() => BatchButton.IsEnabled = true);
+                        Dispatcher.Invoke(() => StartPulsing(BatchButton, 2000));
+                        WriteOutputLine("Analysis Completed - Outcome: PASS");
+                        SetTaskbarProgressState(TaskbarItemProgressState.Normal);
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() => BatchButton.IsEnabled = false);
+                        Dispatcher.Invoke(() => TrackGrid.IsEnabled = false);
+                        WriteOutputLine("Analysis Completed - Outcome: FAIL");
+                        WriteOutputLine("Explanation: Unable to unlock batching as the selected files have differing sub/audio/video track setup, proceeding would result in missmatched tracks");
+                        WriteOutputLine("Resolution: Deselect the MKV's that have FAILED and process them on their own. Only once all selected files PASS is the batch button unlocked");
+                        SystemSounds.Hand.Play();
+                        SetTaskbarProgressState(TaskbarItemProgressState.Error);
+                    }
+
+                    IsEventListening = true;
+
+                    WriteOutputLine($"**** ANALYSIS END ****");
+                    WriteOutputLine();
+                });
+            }
+            catch (Exception ex)
+            {
+                ToggleUI(true);
+                WriteOutputLine($"An exception occurred during analysis: {ex.Message}");
+                SetTaskbarProgressState(TaskbarItemProgressState.Error);
+            }
         }
 
         private bool CheckTracks(string trackType, string? currentFilePath, List<cTrack> currentTracks, string? compareFilePath, List<cTrack> compareTracks)
@@ -690,190 +780,196 @@ namespace MKVToolNixWrapper
         private async Task StartBatchProcess()
         {
             // start the batch process
-            PauseEvent.Set();
-            BatchButton.Content = "Pause Batch";
-            ClearFilesButton.Visibility = Visibility.Hidden;
-            ClearFilesButton.Width = 0;
-
-            ToggleUI(false);
-            BatchButton.IsEnabled = true;
-
-            await Task.Run(() =>
+            try
             {
-                WriteOutputLine("**** BATCH START ****");
-                // taskbar - In Progress
-                Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Indeterminate);
+                PauseEvent.Set();
+                BatchButton.Content = "Pause Batch";
+                ClearFilesButton.Visibility = Visibility.Hidden;
+                ClearFilesButton.Width = 0;
 
-                // force mouse spinner
-                Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
+                ToggleUI(false);
+                BatchButton.IsEnabled = true;
 
-                string OutputPath = "\\MasteredFiles\\";
-                string mergeCommandString = "";
-
-                IEnumerable<cTrackListMeta> videoTracks = TrackList.Where(x => x.Type == "video" && x.Include);
-                if (videoTracks.Any())
+                await Task.Run(() =>
                 {
-                    mergeCommandString += $"--video-tracks {string.Join(",", videoTracks.Select(x => x.Id))} ";
-                }
-                else
-                {
-                    mergeCommandString += "--no-video ";
-                }
+                    WriteOutputLine("**** BATCH START ****");
+                    // taskbar - In Progress
+                    SetTaskbarProgressState(TaskbarItemProgressState.Indeterminate);
 
-                IEnumerable<cTrackListMeta> audioTracks = TrackList.Where(x => x.Type == "audio" && x.Include);
-                if (audioTracks.Any())
-                {
-                    mergeCommandString += $"--audio-tracks {string.Join(",", audioTracks.Select(x => x.Id))} ";
-                }
-                else
-                {
-                    mergeCommandString += "--no-audio ";
-                }
+                    // force mouse spinner
+                    Dispatcher.Invoke(() => Mouse.OverrideCursor = Cursors.Wait);
 
-                IEnumerable<cTrackListMeta> subtitleTracks = TrackList.Where(x => x.Type == "subtitles" && x.Include);
-                if (subtitleTracks.Any())
-                {
-                    mergeCommandString += $"--subtitle-tracks {string.Join(",", subtitleTracks.Select(x => x.Id))} ";
-                }
-                else
-                {
-                    mergeCommandString += "--no-subtitles ";
-                }
+                    string OutputPath = "\\MasteredFiles\\";
+                    string mergeCommandString = "";
 
-                List<cTrackListMeta> includedTracks = TrackList.Where(x => x.Include).ToList();
-
-                // add track names, default, forced and
-                mergeCommandString += string.Join(" ", includedTracks.Select(x => $"--track-name {x.Id}:\"{x.Name}\"")) + " ";
-                mergeCommandString += string.Join(" ", includedTracks.Select(x => $"--default-track {x.Id}:{(x.Default ? "yes" : "no")}")) + " ";
-                mergeCommandString += string.Join(" ", includedTracks.Select(x => $"--forced-track {x.Id}:{(x.Forced ? "yes" : "no")}")) + " ";
-                mergeCommandString += string.Join(" ", includedTracks.Select(x => $"--language {x.Id}:{x.Language}")) + " ";
-
-                if (Dispatcher.Invoke(() => (AttachmentsCheckbox.IsChecked == true)))
-                {
-                    mergeCommandString += "--no-attachments ";
-                }
-
-                // add track order
-                mergeCommandString += string.Join(" ", $"--track-order {string.Join(",", includedTracks.Select(x => $"0:{x.Id}"))}") + " ";
-
-                foreach (cFileMeta filePath in FileMetaList.Where(x => x.Include))
-                {
-                    if (WasBatchStopped)
+                    IEnumerable<cTrackListMeta> videoTracks = TrackList.Where(x => x.Type == "video" && x.Include);
+                    if (videoTracks.Any())
                     {
-                        break;
+                        mergeCommandString += $"--video-tracks {string.Join(",", videoTracks.Select(x => x.Id))} ";
+                    }
+                    else
+                    {
+                        mergeCommandString += "--no-video ";
                     }
 
-                    try
+                    IEnumerable<cTrackListMeta> audioTracks = TrackList.Where(x => x.Type == "audio" && x.Include);
+                    if (audioTracks.Any())
                     {
-                        string outputFilePath = $"{Path.GetDirectoryName(filePath.FilePath)}\\{OutputPath}\\{Path.GetFileName(filePath.FilePath)}";
-                        string mkvMergeArgument = $"-o \"{outputFilePath}\" {mergeCommandString} \"{filePath.FilePath}\"";
+                        mergeCommandString += $"--audio-tracks {string.Join(",", audioTracks.Select(x => x.Id))} ";
+                    }
+                    else
+                    {
+                        mergeCommandString += "--no-audio ";
+                    }
 
-                        // inform user
-                        WriteOutputLine($"Writing  \"{outputFilePath}\"");
-                        filePath.Status = FileStatusEnum.WritingFile;
-                        ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
+                    IEnumerable<cTrackListMeta> subtitleTracks = TrackList.Where(x => x.Type == "subtitles" && x.Include);
+                    if (subtitleTracks.Any())
+                    {
+                        mergeCommandString += $"--subtitle-tracks {string.Join(",", subtitleTracks.Select(x => x.Id))} ";
+                    }
+                    else
+                    {
+                        mergeCommandString += "--no-subtitles ";
+                    }
 
-                        using Process process = new()
+                    List<cTrackListMeta> includedTracks = TrackList.Where(x => x.Include).ToList();
+
+                    // add track names, default, forced and
+                    mergeCommandString += string.Join(" ", includedTracks.Select(x => $"--track-name {x.Id}:\"{x.Name}\"")) + " ";
+                    mergeCommandString += string.Join(" ", includedTracks.Select(x => $"--default-track {x.Id}:{(x.Default ? "yes" : "no")}")) + " ";
+                    mergeCommandString += string.Join(" ", includedTracks.Select(x => $"--forced-track {x.Id}:{(x.Forced ? "yes" : "no")}")) + " ";
+                    mergeCommandString += string.Join(" ", includedTracks.Select(x => $"--language {x.Id}:{x.Language}")) + " ";
+
+                    if (Dispatcher.Invoke(() => (AttachmentsCheckbox.IsChecked == true)))
+                    {
+                        mergeCommandString += "--no-attachments ";
+                    }
+
+                    // add track order
+                    mergeCommandString += string.Join(" ", $"--track-order {string.Join(",", includedTracks.Select(x => $"0:{x.Id}"))}") + " ";
+
+                    foreach (cFileMeta filePath in FileMetaList.Where(x => x.Include))
+                    {
+                        if (WasBatchStopped)                        
+                            break;                        
+
+                        try
                         {
-                            StartInfo = new ProcessStartInfo
+                            string outputFilePath = $"{Path.GetDirectoryName(filePath.FilePath)}\\{OutputPath}\\{Path.GetFileName(filePath.FilePath)}";
+                            string mkvMergeArgument = $"-o \"{outputFilePath}\" {mergeCommandString} \"{filePath.FilePath}\"";
+
+                            // inform user
+                            WriteOutputLine($"Writing  \"{outputFilePath}\"");
+                            filePath.Status = FileStatusEnum.WritingFile;
+                            ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
+
+                            using Process process = new()
                             {
-                                FileName = MkvMergePath,
-                                Arguments = mkvMergeArgument,
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                UseShellExecute = false,
-                                CreateNoWindow = true,
-                            }
-                        };
+                                StartInfo = new ProcessStartInfo
+                                {
+                                    FileName = MkvMergePath,
+                                    Arguments = mkvMergeArgument,
+                                    RedirectStandardOutput = true,
+                                    RedirectStandardError = true,
+                                    UseShellExecute = false,
+                                    CreateNoWindow = true,
+                                }
+                            };
 
-                        process.OutputDataReceived += (sender, e) =>
-                        {
-                            if (e.Data != null)
+                            process.OutputDataReceived += (sender, e) =>
                             {
-                                // if it's a progress line (but not 0%) we set replace last line to true
-                                WriteOutputLine(e.Data, Regex.IsMatch(e.Data, @"^Progress: [1-9]\d*%$"));
+                                if (e.Data != null)
+                                {
+                                    // if it's a progress line (but not 0%) we set replace last line to true
+                                    WriteOutputLine(e.Data, Regex.IsMatch(e.Data, @"^Progress: [1-9]\d*%$"));
+                                }
+                            };
+
+                            process.Start();
+                            ProcessIdTracker.Add(process.Id);
+                            process.BeginOutputReadLine();
+
+                            // wait for the process to exit or for the stop signal
+                            while (!process.HasExited)
+                            {
+                                if (WasBatchStopped)
+                                {
+                                    process.Kill();
+                                    break;
+                                }
+                                if (!PauseEvent.IsSet)
+                                {
+                                    break;
+                                }
+                                Thread.Sleep(100); // add a small delay to avoid busy-waiting
                             }
-                        };
 
-                        process.Start();
-                        ProcessIdTracker.Add(process.Id);
-                        process.BeginOutputReadLine();
+                            ProcessIdTracker.Remove(process.Id);
 
-                        // wait for the process to exit or for the stop signal
-                        while (!process.HasExited)
-                        {
                             if (WasBatchStopped)
                             {
-                                process.Kill();
                                 break;
                             }
-                            if (!PauseEvent.IsSet)
+
+                            string standardError = process.StandardError.ReadToEnd();
+                            if (string.IsNullOrEmpty(standardError) && File.Exists(outputFilePath) && process.ExitCode == 0)
                             {
-                                break;
+                                filePath.Status = FileStatusEnum.WrittenFile;
+                                WriteOutputLine($"Writing Complete  \"{outputFilePath}\"");
                             }
-                            Thread.Sleep(100); // add a small delay to avoid busy-waiting
+                            else
+                            {
+                                filePath.Status = FileStatusEnum.Error;
+                                WriteOutputLine($"Writing Error! - Please review the output for details {standardError}");
+                                SystemSounds.Hand.Play();
+                                // taskbar - Error
+                                SetTaskbarProgressState(TaskbarItemProgressState.Error);
+                            }
+                            WriteOutputLine();
+                            ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
+
+                            PauseEvent.Wait();
                         }
-
-                        ProcessIdTracker.Remove(process.Id);
-
-                        if (WasBatchStopped)
+                        catch (Exception ex)
                         {
-                            break;
+                            WriteOutputLine($"An exception occured attempting to invoke mkvmerge for {filePath}: {ex}");
                         }
-
-                        string standardError = process.StandardError.ReadToEnd();
-                        if (string.IsNullOrEmpty(standardError) && File.Exists(outputFilePath) && process.ExitCode == 0)
-                        {
-                            filePath.Status = FileStatusEnum.WrittenFile;
-                            WriteOutputLine($"Writing Complete  \"{outputFilePath}\"");
-                        }
-                        else
-                        {
-                            filePath.Status = FileStatusEnum.Error;
-                            WriteOutputLine($"Writing Error! - Please review the output for details {standardError}");
-                            SystemSounds.Hand.Play();
-                            // taskbar - Error
-                            Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Error);
-                        }
-                        WriteOutputLine();
-                        ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
-
-                        PauseEvent.Wait();
                     }
-                    catch (Exception ex)
-                    {
-                        WriteOutputLine($"An exception occured attempting to invoke mkvmerge for {filePath}: {ex}");
-                    }
+
+                    // restore mouse cursor
+                    Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
+
+                    // taskbar - Success
+                    SetTaskbarProgressState(TaskbarItemProgressState.Normal);
+
+                    PlayNotificationSound();
+
+                    WriteOutputLine("**** BATCH END ****");
+
+                    IsEventListening = true;
+                    Dispatcher.Invoke(() => BatchButton.Content = "Start Batch");
+                });
+                if (WasBatchStopped)
+                {
+                    // reset the status of all files to Unprocessed
+                    ResetFileStatus();
+                    SetTaskbarProgressState(TaskbarItemProgressState.Normal);
                 }
+                WasBatchStopped = false;
 
-                // restore mouse cursor
-                Dispatcher.Invoke(() => Mouse.OverrideCursor = null);
-
-                // taskbar - Success
-                Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal);
-
-                PlayNotificationSound();
-
-                WriteOutputLine("**** BATCH END ****");
-
-                IsEventListening = true;
-                Dispatcher.Invoke(() => BatchButton.Content = "Start Batch");
-            });
-            if (WasBatchStopped)
-            {
-                // reset the status of all files to Unprocessed
-                ResetFileStatus();
-                Dispatcher.Invoke(() => TaskbarItemInfo.ProgressState = TaskbarItemProgressState.Normal);
+                // hide the stop button
+                StopButton.Visibility = Visibility.Hidden;
+                StopButton.Margin = new Thickness(0, 0, 0, 0);
+                StopButton.Width = 0;
+                ClearFilesButton.Visibility = Visibility.Visible;
+                ClearFilesButton.Width = 80;
+                ToggleUI(true);
             }
-            WasBatchStopped = false;
-
-            // hide the stop button
-            StopButton.Visibility = Visibility.Hidden;
-            StopButton.Margin = new Thickness(0, 0, 0, 0);
-            StopButton.Width = 0;
-            ClearFilesButton.Visibility = Visibility.Visible;
-            ClearFilesButton.Width = 80;
-            ToggleUI(true);
+            catch (Exception ex)
+            {
+                WriteOutputLine($"An exception occurred during batch processing: {ex.Message}");
+                SetTaskbarProgressState(TaskbarItemProgressState.Error);
+            }
         }
         #endregion
 
@@ -1041,6 +1137,19 @@ namespace MKVToolNixWrapper
             //    }
         }
 
+        #region change state
+        private void SetTaskbarProgressState(TaskbarItemProgressState state)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => SetTaskbarProgressState(state));
+                return;
+            }
+
+            TaskbarItemInfo.ProgressState = state;
+        }
+        #endregion
+
         #region reset
         private void ClearFilesButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1085,7 +1194,7 @@ namespace MKVToolNixWrapper
                     MessageBox.Show($"The language code \"{textBox.Text}\" is invalid.\r\nPlease enter a valid ISO 639-2 language code.", "Invalid language code", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-        }       
+        }
         #endregion
 
         #region drag and drop
