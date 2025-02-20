@@ -341,6 +341,40 @@ namespace MKVToolNixWrapper
             });
             ForceSetControlItemsSourceBinding(FileListBox, FileMetaList);
         }
+         private void MoveUpButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || button.DataContext is not cTrackListMeta track) return;
+
+            int oldIndex = TrackList.IndexOf(track);
+            if (oldIndex > 0)
+            {
+                // move the track in TrackList
+                cTrackListMeta oldValue = TrackList[oldIndex];
+                cTrackListMeta previousValue = TrackList[oldIndex - 1];
+
+                // swap the Ids
+                TrackList.RemoveAt(oldIndex);
+                TrackList.Insert(oldIndex - 1, oldValue);
+
+                // find the corresponding file in FileMetaList and move it
+                cFileMeta? fileMeta = FileMetaList.FirstOrDefault(f => f.FilePath == track.Name);
+                if (fileMeta != null)
+                {
+                    int fileMetaIndex = FileMetaList.IndexOf(fileMeta);
+                    if (fileMetaIndex > 0)
+                    {
+                        cFileMeta fileMetaValue = FileMetaList[fileMetaIndex];
+                        FileMetaList.RemoveAt(fileMetaIndex);
+                        FileMetaList.Insert(fileMetaIndex - 1, fileMetaValue);
+                    }
+                }
+
+                // refresh the DataGrid
+                TrackGrid.ItemsSource = null;
+                TrackGrid.ItemsSource = TrackList;
+            }
+        }
+
         #endregion
 
         #endregion
@@ -1051,42 +1085,7 @@ namespace MKVToolNixWrapper
                     MessageBox.Show($"The language code \"{textBox.Text}\" is invalid.\r\nPlease enter a valid ISO 639-2 language code.", "Invalid language code", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-        }
-        private void MoveUpButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not Button button || button.DataContext is not cTrackListMeta track) return;
-
-            int oldIndex = TrackList.IndexOf(track);
-            if (oldIndex > 0)
-            {
-                // Move the track in TrackList
-                cTrackListMeta oldValue = TrackList[oldIndex];
-                cTrackListMeta previousValue = TrackList[oldIndex - 1];
-
-                // Swap the Ids
-                (previousValue.Id, oldValue.Id) = (oldValue.Id, previousValue.Id);
-                TrackList.RemoveAt(oldIndex);
-                TrackList.Insert(oldIndex - 1, oldValue);
-
-                // Find the corresponding file in FileMetaList and move it
-                cFileMeta? fileMeta = FileMetaList.FirstOrDefault(f => f.FilePath == track.Name);
-                if (fileMeta != null)
-                {
-                    int fileMetaIndex = FileMetaList.IndexOf(fileMeta);
-                    if (fileMetaIndex > 0)
-                    {
-                        cFileMeta fileMetaValue = FileMetaList[fileMetaIndex];
-                        FileMetaList.RemoveAt(fileMetaIndex);
-                        FileMetaList.Insert(fileMetaIndex - 1, fileMetaValue);
-                    }
-                }
-
-                // Refresh the DataGrid
-                TrackGrid.ItemsSource = null;
-                TrackGrid.ItemsSource = TrackList;
-            }
-        }
-
+        }       
         #endregion
 
         #region drag and drop
